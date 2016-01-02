@@ -157,8 +157,12 @@ function runCodeBlock(codeBlock) {
         console.log(error);
         reject(error);
       } else {
-        console.log(stdout);
-        console.error(stderr);
+        if (stdout) {
+          console.log(stdout);
+        }
+        if (stderr) {
+          console.error(stderr);
+        }
         fulfill(codeBlock);
       }
     });
