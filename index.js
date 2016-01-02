@@ -21,21 +21,29 @@ function fileExtensionForLanguage(language) {
   }[language] || '.unknown';
 }
 
+function generateFilename(filepath, elem, $) {
+  var outputFilename = path.basename(filepath);
+  var language = $(elem).attr('class').split(' ')[0];
+  var extension = path.extname(outputFilename);
+  var languageExtension = fileExtensionForLanguage(language);
+  outputFilename = outputFilename.replace(
+      extension,
+      '-' + rand.generateKey(7) + languageExtension);
+  return outputFilename;
+}
+
 function buildFilename(filepath, elem, $) {
   var outputFilename;
+  if (!elem.parentNode.nextSibling) {
+    return generateFilename(filepath, elem, $);
+  }
   var nodeAfterPre = elem.parentNode.nextSibling.nextSibling;
   var isSpecifyingFilename =
     nodeAfterPre.tagName.toLowerCase() === 'blockquote';
   if (isSpecifyingFilename) {
     outputFilename = $(nodeAfterPre).text().trim()
   } else {
-    outputFilename = path.basename(filepath);
-    var language = $(elem).attr('class').split(' ')[0];
-    var extension = path.extname(outputFilename);
-    var languageExtension = fileExtensionForLanguage(language);
-    outputFilename = outputFilename.replace(
-        extension,
-        '-' + rand.generateKey(7) + languageExtension);
+    return generateFilename(filepath, elem, $);
   }
   return outputFilename;
 }
