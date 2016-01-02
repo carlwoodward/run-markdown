@@ -89,20 +89,27 @@ function writeCodeBlocks(codeBlocks) {
   var dir = '.runnable-markdown-' + rand.generateKey(7);
   return makeTempDir(dir)
   .then(function() {
-    return Promise.all(codeBlocks.map(function(codeBlock) {
-      return new Promise(function(fulfill, reject) {
+    return new Promise(function(fulfill, reject) {
+      async.mapSeries(codeBlocks, function(codeBlock, callback) {
         var filepath = dir + '/' + codeBlock.filename;
-        fs.writeFile(filepath, codeBlock.content, function(err) {
+        fs.appendFile(filepath, codeBlock.content, function(err) {
           if (err) {
             console.err(err);
-            return reject(err);
+            callback(err, null);
           } else {
             codeBlock.filename = filepath;
-            fulfill(codeBlock);
+            callback(null, codeBlock);
           }
         });
+      }, function(err, result) {
+        if (err) {
+          reject(err);
+        } else {
+          console.log('write code block', result);
+          fulfill(result);
+        }
       });
-    }));
+    });
   });
 }
 
@@ -145,7 +152,6 @@ function runCodeBlocks(codeBlocks) {
     async.mapSeries(codeBlocks, function(codeBlock, callback) {
       var filenameWithoutDir = codeBlock.filename.replace(dir + '/', '');
       var command = runner(codeBlock, filenameWithoutDir);
-      console.log('command:', command);
       exec(command, {cwd: dir}, function(error, stdout, stderr) {
         if (error) {
           console.log(error);
