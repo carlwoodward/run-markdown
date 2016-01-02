@@ -67,35 +67,41 @@ function extractCodeBlocks(filepath) {
   });
 }
 
+function makeTempDir(dir) {
+  return new Promise(function(fulfill, reject) {
+    fs.mkdir(dir, function(err) {
+      if (err) {
+        reject(err);
+      } else {
+        fulfill();
+      }
+    });
+  });
+}
+
 //
 // Returns the same list of code blocks
 // as what is passed in, but each filename includes
 // the directory where it is stored.
 //
 function writeCodeBlocks(codeBlocks) {
-  return new Promise(function(fulfull, reject) {
-    var dir = '.runnable-markdown-' + rand.generateKey(7);
-    fs.mkdir(dir, function(err) {
-      if (err) {
-        reject(err);
-      } else {
-        codeBlocks.forEach(function(codeBlock, index) {
-          var filepath = dir + '/' + codeBlock.filename;
-          fs.writeFile(filepath, codeBlock.content, function(err) {
-            if (err) {
-              console.err(err);
-              return reject(err);
-            } else {
-              codeBlock.filename = filepath;
-              // TODO: convert to a promise for codeblock and promise.all.
-              if (index === codeBlocks.length - 1) {
-                fulfull(codeBlocks);
-              }
-            }
-          });
+  var dir = '.runnable-markdown-' + rand.generateKey(7);
+  return makeTempDir(dir)
+  .then(function() {
+    return Promise.all(codeBlocks.map(function(codeBlock) {
+      return new Promise(function(fulfill, reject) {
+        var filepath = dir + '/' + codeBlock.filename;
+        fs.writeFile(filepath, codeBlock.content, function(err) {
+          if (err) {
+            console.err(err);
+            return reject(err);
+          } else {
+            codeBlock.filename = filepath;
+            fulfill(codeBlock);
+          }
         });
-      }
-    });
+      });
+    }));
   });
 }
 
@@ -111,6 +117,18 @@ function runner(codeBlock) {
   }
 }
 
+function removeOldDir(dir) {
+  return new Promise(function(fulfill, reject) {
+    fsExtra.remove(dir, function(err) {
+      if (err) {
+        reject(err);
+      } else {
+        fulfill();
+      }
+    });
+  });
+}
+
 //
 // Runs all code blocks sequentially.
 // Uses specially runners for files like Gemfile and package.json.
@@ -121,9 +139,9 @@ function runCodeBlocks(codeBlocks) {
   if (codeBlocks.length === 0) {
     return Promise.resolve(codeBlocks);
   }
-  return new Promise(function(fulfull, reject) {
-    var dir = path.dirname(codeBlocks[0].filename);
-    codeBlocks.forEach(function(codeBlock, index) {
+  var dir = path.dirname(codeBlocks[0].filename);
+  return Promise.all(codeBlocks.map(function(codeBlock) {
+    return new Promise(function(fulfill, reject) {
       var filenameWithoutDir = codeBlock.filename.replace(dir + '/', '');
       var command = runner(codeBlock) + ' ' + filenameWithoutDir;
       exec(command, {cwd: dir}, function(error, stdout, stderr) {
@@ -132,21 +150,16 @@ function runCodeBlocks(codeBlocks) {
         } else {
           console.log(stdout);
           console.error(stderr);
-
-          // TODO: convert to a promise for codeblock and promise.all.
-          if (index === codeBlocks.length - 1) {
-            fsExtra.remove(dir, function(err) {
-              if (err) {
-                console.log(err);
-                reject(err);
-              } else {
-                fulfull(codeBlocks);
-              }
-            });
-          }
+          fulfill();
         }
       });
     });
+  }))
+  .then(function() {
+    return removeOldDir(dir);
+  })
+  .then(function() {
+    return codeBlocks;
   });
 }
 
