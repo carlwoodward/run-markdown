@@ -1,6 +1,6 @@
 {
   "name": "run-markdown",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A way of running a code from a markdown file and seeing the result",
   "main": "index.js",
   "scripts": {
