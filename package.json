@@ -23,5 +23,9 @@
   },
   "bin": {
     "run-markdown": "./bin/cli.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/carlwoodward/run-markdown"
   }
 }
