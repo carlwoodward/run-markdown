@@ -4,6 +4,7 @@ var exec = require('child_process').exec;
 var showdown = require('showdown');
 var cheerio = require('cheerio');
 var rand = require('generate-key');
+var fsExtra = require('fs-extra');
 
 function fileExtensionForLanguage(language) {
   return {
@@ -73,7 +74,7 @@ function extractCodeBlocks(filepath) {
 //
 function writeCodeBlocks(codeBlocks) {
   return new Promise(function(fulfull, reject) {
-    var dir = './.runnable-markdown-' + rand.generateKey(7);
+    var dir = '.runnable-markdown-' + rand.generateKey(7);
     fs.mkdir(dir, function(err) {
       if (err) {
         reject(err);
@@ -134,7 +135,14 @@ function runCodeBlocks(codeBlocks) {
 
           // TODO: convert to a promise for codeblock and promise.all.
           if (index === codeBlocks.length - 1) {
-            fulfull(codeBlocks);
+            fsExtra.remove(dir, function(err) {
+              if (err) {
+                console.log(err);
+                reject(err);
+              } else {
+                fulfull(codeBlocks);
+              }
+            });
           }
         }
       });
