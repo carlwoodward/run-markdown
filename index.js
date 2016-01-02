@@ -37,7 +37,11 @@ function buildFilename(filepath, elem, $) {
   return outputFilename;
 }
 
-function run(filepath) {
+//
+// Returns a list of code blocks that look like:
+// [{filename: '...', content: '...'}, ...]
+//
+function extractCodeBlocks(filepath) {
   return new Promise(function(fulfull, reject) {
     fs.readFile(filepath, 'utf8', function(err, text) {
       if (err) {
@@ -60,4 +64,6 @@ function run(filepath) {
   });
 }
 
-module.exports = {run: run};
+module.exports = {
+  extractCodeBlocks: extractCodeBlocks
+};
