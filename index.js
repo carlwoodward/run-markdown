@@ -15,6 +15,23 @@ function fileExtensionForLanguage(language) {
   }
 }
 
+function buildFilename(filepath, elem, $) {
+  var outputFilename;
+  var nodeAfterPre = elem.parentNode.nextSibling.nextSibling;
+  if (nodeAfterPre.tagName.toLowerCase() === 'blockquote') {
+    outputFilename = $(nodeAfterPre).text().trim()
+  } else {
+    outputFilename = path.basename(filepath);
+    var language = $(elem).attr('class').split(' ')[0];
+    var extension = path.extname(outputFilename);
+    var languageExtension = fileExtensionForLanguage(language);
+    outputFilename = outputFilename.replace(
+        extension,
+        '-' + rand.generateKey(7) + languageExtension);
+  }
+  return outputFilename;
+}
+
 function run(filepath) {
   return new Promise(function(fulfull, reject) {
     fs.readFile(filepath, 'utf8', function(err, text) {
@@ -26,21 +43,8 @@ function run(filepath) {
         var html = converter.makeHtml(text);
         var $ = cheerio.load(html);
         var codeBlocks = $('pre code').map(function(index, elem) {
-          var outputFilename;
-          var nodeAfterPre = elem.parentNode.nextSibling.nextSibling;
-          if (nodeAfterPre.tagName.toLowerCase() === 'blockquote') {
-            outputFilename = $(nodeAfterPre).text().trim()
-          } else {
-            outputFilename = path.basename(filepath);
-            var language = $(elem).attr('class').split(' ')[0];
-            var extension = path.extname(outputFilename);
-            var languageExtension = fileExtensionForLanguage(language);
-            outputFilename = outputFilename.replace(
-                extension,
-                '-' + rand.generateKey(7) + languageExtension);
-          }
           return {
-            filename: outputFilename,
+            filename: buildFilename(filepath, elem, $),
             content: $(elem).text()
           };
         });
