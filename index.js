@@ -105,7 +105,6 @@ function writeCodeBlocks(codeBlocks) {
         if (err) {
           reject(err);
         } else {
-          console.log('write code block', result);
           fulfill(result);
         }
       });
