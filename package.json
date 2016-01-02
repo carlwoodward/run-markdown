@@ -1,5 +1,5 @@
 {
-  "name": "runnable-markdown",
+  "name": "run-markdown",
   "version": "0.0.1",
   "description": "A way of running a code from a markdown file and seeing the result",
   "main": "index.js",
@@ -20,5 +20,8 @@
     "fs-extra": "^0.26.3",
     "generate-key": "0.0.6",
     "showdown": "^1.3.0"
+  },
+  "bin": {
+    "run-markdown": "./bin/cli.js"
   }
 }
