@@ -23,7 +23,7 @@ function fileExtensionForLanguage(language) {
 
 function generateFilename(filepath, elem, $) {
   var outputFilename = path.basename(filepath);
-  var language = $(elem).attr('class').split(' ')[0];
+  var language = ($(elem).attr('class') || 'none lanuage-none').split(' ')[0];
   var extension = path.extname(outputFilename);
   var languageExtension = fileExtensionForLanguage(language);
   outputFilename = outputFilename.replace(
@@ -63,7 +63,7 @@ function extractCodeBlocks(filepath) {
         var html = converter.makeHtml(text);
         var $ = cheerio.load(html);
         var codeBlocks = $('pre code').map(function(index, elem) {
-          var language = $(elem).attr('class').split(' ')[0];
+          var language = ($(elem).attr('class') || 'none language-none').split(' ')[0];
           return {
             filename: buildFilename(filepath, elem, $),
             content: $(elem).text(),
@@ -127,7 +127,9 @@ function writeAndRunCodeBlocks(codeBlocks) {
 }
 
 function runner(codeBlock, filenameWithoutDir) {
-  if (codeBlock.filename.indexOf('package.json') !== -1) {
+  if (codeBlock.language === 'none') {
+    return null;
+  } else if (codeBlock.filename.indexOf('package.json') !== -1) {
     return 'npm install';
   } else if (codeBlock.filename.indexOf('Gemfile') !== -1) {
     return 'bundle install';
@@ -160,6 +162,10 @@ function runCodeBlock(codeBlock) {
   return new Promise(function(fulfill, reject) {
     var filenameWithoutDir = codeBlock.filename.replace(dir + '/', '');
     var command = runner(codeBlock, filenameWithoutDir);
+    if (command === null) {
+      fulfill(codeBlock);
+      return;
+    }
     exec(command, {cwd: dir}, function(error, stdout, stderr) {
       if (error) {
         console.log(error);
