@@ -123,6 +123,12 @@ function writeAndRunCodeBlocks(codeBlocks) {
         }
       });
     });
+  })
+  .then(function(codeBlocks) {
+    return removeOldDir(dir)
+      .then(function() {;
+        return codeBlocks
+      });
   });
 }
 
