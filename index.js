@@ -5,6 +5,7 @@ var showdown = require('showdown');
 var cheerio = require('cheerio');
 var rand = require('generate-key');
 var fsExtra = require('fs-extra');
+var async = require('async');
 
 function fileExtensionForLanguage(language) {
   return {
@@ -44,7 +45,7 @@ function buildFilename(filepath, elem, $) {
 // [{filename: '...', content: '...', language: '...'}, ...]
 //
 function extractCodeBlocks(filepath) {
-  return new Promise(function(fulfull, reject) {
+  return new Promise(function(fulfill, reject) {
     fs.readFile(filepath, 'utf8', function(err, text) {
       if (err) {
         console.log(err);
@@ -61,7 +62,7 @@ function extractCodeBlocks(filepath) {
             language: language
           };
         });
-        fulfull(codeBlocks);
+        fulfill(codeBlocks.toArray());
       }
     });
   });
@@ -105,15 +106,15 @@ function writeCodeBlocks(codeBlocks) {
   });
 }
 
-function runner(codeBlock) {
+function runner(codeBlock, filenameWithoutDir) {
   if (codeBlock.filename.indexOf('package.json') !== -1) {
     return 'npm install';
   } else if (codeBlock.filename.indexOf('Gemfile') !== -1) {
     return 'bundle install';
   } else if (codeBlock.language === 'javascript') {
-    return 'node';
+    return 'node' + ' ' + filenameWithoutDir;
   } else {
-    return codeBlock.language;
+    return codeBlock.language + ' ' + filenameWithoutDir;
   }
 }
 
@@ -140,21 +141,29 @@ function runCodeBlocks(codeBlocks) {
     return Promise.resolve(codeBlocks);
   }
   var dir = path.dirname(codeBlocks[0].filename);
-  return Promise.all(codeBlocks.map(function(codeBlock) {
-    return new Promise(function(fulfill, reject) {
+  return new Promise(function(fulfill, reject) {
+    async.mapSeries(codeBlocks, function(codeBlock, callback) {
       var filenameWithoutDir = codeBlock.filename.replace(dir + '/', '');
-      var command = runner(codeBlock) + ' ' + filenameWithoutDir;
+      var command = runner(codeBlock, filenameWithoutDir);
+      console.log('command:', command);
       exec(command, {cwd: dir}, function(error, stdout, stderr) {
         if (error) {
-          reject(error);
+          console.log(error);
+          callback(error, null);
         } else {
           console.log(stdout);
           console.error(stderr);
-          fulfill();
+          callback(null, codeBlock);
         }
       });
+    }, function(err, result) {
+      if (err) {
+        reject(err);
+      } else {
+        fulfill(result);
+      }
     });
-  }))
+  })
   .then(function() {
     return removeOldDir(dir);
   })
