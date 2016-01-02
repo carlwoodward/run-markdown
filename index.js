@@ -85,7 +85,7 @@ function makeTempDir(dir) {
 // as what is passed in, but each filename includes
 // the directory where it is stored.
 //
-function writeCodeBlocks(codeBlocks) {
+function writeAndRunCodeBlocks(codeBlocks) {
   var dir = '.runnable-markdown-' + rand.generateKey(7);
   return makeTempDir(dir)
   .then(function() {
@@ -98,7 +98,13 @@ function writeCodeBlocks(codeBlocks) {
             callback(err, null);
           } else {
             codeBlock.filename = filepath;
-            callback(null, codeBlock);
+            runCodeBlock(codeBlock)
+              .then(function(codeBlock) {
+                callback(null, codeBlock);
+              })
+              .catch(function(err) {
+                callback(err, null);
+              });
           }
         });
       }, function(err, result) {
@@ -137,48 +143,29 @@ function removeOldDir(dir) {
 }
 
 //
-// Runs all code blocks sequentially.
+// Runs a code block.
 // Uses specially runners for files like Gemfile and package.json.
-// Also cleans up directory.
-// Returns codeBlocks.
+// Returns codeBlock.
 //
-function runCodeBlocks(codeBlocks) {
-  if (codeBlocks.length === 0) {
-    return Promise.resolve(codeBlocks);
-  }
-  var dir = path.dirname(codeBlocks[0].filename);
+function runCodeBlock(codeBlock) {
+  var dir = path.dirname(codeBlock.filename);
   return new Promise(function(fulfill, reject) {
-    async.mapSeries(codeBlocks, function(codeBlock, callback) {
-      var filenameWithoutDir = codeBlock.filename.replace(dir + '/', '');
-      var command = runner(codeBlock, filenameWithoutDir);
-      exec(command, {cwd: dir}, function(error, stdout, stderr) {
-        if (error) {
-          console.log(error);
-          callback(error, null);
-        } else {
-          console.log(stdout);
-          console.error(stderr);
-          callback(null, codeBlock);
-        }
-      });
-    }, function(err, result) {
-      if (err) {
-        reject(err);
+    var filenameWithoutDir = codeBlock.filename.replace(dir + '/', '');
+    var command = runner(codeBlock, filenameWithoutDir);
+    exec(command, {cwd: dir}, function(error, stdout, stderr) {
+      if (error) {
+        console.log(error);
+        reject(error);
       } else {
-        fulfill(result);
+        console.log(stdout);
+        console.error(stderr);
+        fulfill(codeBlock);
       }
     });
-  })
-  .then(function() {
-    return removeOldDir(dir);
-  })
-  .then(function() {
-    return codeBlocks;
   });
 }
 
 module.exports = {
   extractCodeBlocks: extractCodeBlocks,
-  writeCodeBlocks: writeCodeBlocks,
-  runCodeBlocks: runCodeBlocks
+  writeAndRunCodeBlocks: writeAndRunCodeBlocks
 };
