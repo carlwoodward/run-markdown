@@ -18,6 +18,18 @@ Run it against a markdown file:
 run-markdown test.md
 ```
 
+## Example
+
+Use run markdown on the markdown file below:
+
+![](https://dl.dropboxusercontent.com/u/682034/run-markdown.png)
+
+And it will output:
+
+```
+hello world
+```
+
 ## License
 
 MIT
