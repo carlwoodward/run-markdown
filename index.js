@@ -21,7 +21,9 @@ function fileExtensionForLanguage(language) {
 function buildFilename(filepath, elem, $) {
   var outputFilename;
   var nodeAfterPre = elem.parentNode.nextSibling.nextSibling;
-  if (nodeAfterPre.tagName.toLowerCase() === 'blockquote') {
+  var isSpecifyingFilename =
+    nodeAfterPre.tagName.toLowerCase() === 'blockquote';
+  if (isSpecifyingFilename) {
     outputFilename = $(nodeAfterPre).text().trim()
   } else {
     outputFilename = path.basename(filepath);
