@@ -88,6 +88,31 @@ function makeTempDir(dir) {
   });
 }
 
+function appendCodeBlockToFile(codeBlock, dir) {
+  return new Promise(function(fulfill, reject) {
+    var filepath = dir + '/' + codeBlock.filename;
+    fs.appendFile(filepath, codeBlock.content, function(err) {
+      if (err) {
+        console.error(err);
+        reject(err);
+      } else {
+        codeBlock.filename = filepath;
+        fulfill(codeBlock);
+      }
+    });
+  });
+}
+
+function convertAsyncResultToPromise(fulfill, reject) {
+  return function(err, result) {
+    if (err) {
+      reject(err);
+    } else {
+      fulfill(result);
+    }
+  };
+}
+
 //
 // Returns the same list of code blocks
 // as what is passed in, but each filename includes
@@ -99,35 +124,21 @@ function writeAndRunCodeBlocks(codeBlocks) {
   .then(function() {
     return new Promise(function(fulfill, reject) {
       async.mapSeries(codeBlocks, function(codeBlock, callback) {
-        var filepath = dir + '/' + codeBlock.filename;
-        fs.appendFile(filepath, codeBlock.content, function(err) {
-          if (err) {
-            console.err(err);
+        appendCodeBlockToFile(codeBlock, dir)
+          .then(runCodeBlock)
+          .then(function(codeBlock) {
+            callback(null, codeBlock);
+          })
+          .catch(function(err) {
             callback(err, null);
-          } else {
-            codeBlock.filename = filepath;
-            runCodeBlock(codeBlock)
-              .then(function(codeBlock) {
-                callback(null, codeBlock);
-              })
-              .catch(function(err) {
-                callback(err, null);
-              });
-          }
-        });
-      }, function(err, result) {
-        if (err) {
-          reject(err);
-        } else {
-          fulfill(result);
-        }
-      });
+          });
+      }, convertAsyncResultToPromise(fulfill, reject));
     });
   })
   .then(function(codeBlocks) {
     return removeOldDir(dir)
-      .then(function() {;
-        return codeBlocks
+      .then(function() {
+        return codeBlocks;
       });
   });
 }
@@ -174,7 +185,7 @@ function runCodeBlock(codeBlock) {
     }
     exec(command, {cwd: dir}, function(error, stdout, stderr) {
       if (error) {
-        console.log(error);
+        console.error(error);
         reject(error);
       } else {
         if (stdout) {
